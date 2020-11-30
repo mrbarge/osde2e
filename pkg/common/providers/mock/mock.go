@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/Masterminds/semver"
@@ -142,21 +141,11 @@ func (m *MockProvider) ClusterKubeconfig(clusterID string) ([]byte, error) {
 	if clusterID == "fail" {
 		return nil, fmt.Errorf("failed to get versions: Some fake error")
 	}
+	// This kubeconfig is valid and can be parsed, but attmping to use it will cause failures :)
+	fileReader, err = pkger.Open("/assets/providers/mock/kubeconfig")
 
-
-	localKubeConfig := viper.GetString(config.Kubeconfig.Path)
-	if len(localKubeConfig) > 0 {
-		// Read from the TEST_KUBECONFIG if it's been specified
-		fileReader, err = os.Open(localKubeConfig)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		// This kubeconfig is valid and can be parsed, but attmping to use it will cause failures :)
-		fileReader, err = pkger.Open("/assets/providers/mock/kubeconfig")
-		if err != nil {
-			return nil, err
-		}
+	if err != nil {
+		return nil, err
 	}
 	f, err := ioutil.ReadAll(fileReader)
 	if err != nil {

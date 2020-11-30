@@ -284,44 +284,35 @@ func runGinkgoTests() error {
 
 	// Get the cluster ID now to test against later
 	clusterID := viper.GetString(config.Cluster.ID)
-	// setup OSD unless Kubeconfig is present
-	if len(viper.GetString(config.Kubeconfig.Path)) > 0 {
-		log.Print("Found an existing Kubeconfig!")
-		viper.Set(config.Provider, "mock")
-		if provider, err = providers.ClusterProvider(); err != nil {
-			return fmt.Errorf("could not setup cluster provider: %v", err)
-		}
-		metadata.Instance.SetEnvironment(provider.Environment())
-	} else {
-		if provider, err = providers.ClusterProvider(); err != nil {
-			return fmt.Errorf("could not setup cluster provider: %v", err)
-		}
 
-		metadata.Instance.SetEnvironment(provider.Environment())
+	if provider, err = providers.ClusterProvider(); err != nil {
+		return fmt.Errorf("could not setup cluster provider: %v", err)
+	}
 
-		// configure cluster and upgrade versions
-		if err = ChooseVersions(); err != nil {
-			log.Printf("failed to configure versions: %v", err)
-			return nil
-		}
+	metadata.Instance.SetEnvironment(provider.Environment())
 
-		switch {
-		case !viper.GetBool(config.Cluster.EnoughVersionsForOldestOrMiddleTest):
-			log.Printf("There were not enough available cluster image sets to choose and oldest or middle cluster image set to test against. Skipping tests.")
-			return nil
-		case !viper.GetBool(config.Cluster.PreviousVersionFromDefaultFound):
-			log.Printf("No previous version from default found with the given arguments.")
-			return nil
-		case viper.GetBool(config.Upgrade.UpgradeVersionEqualToInstallVersion):
-			log.Printf("Install version and upgrade version are the same. Skipping tests.")
-			return nil
-		case viper.GetString(config.Upgrade.ReleaseName) == util.NoVersionFound:
-			log.Printf("No valid upgrade versions were found. Skipping tests.")
-			return nil
-		case viper.GetString(config.Upgrade.Image) != "":
-			log.Printf("image-based managed upgrades are unsupported: %s", viper.GetString(config.Upgrade.Image))
-			return nil
-		}
+	// configure cluster and upgrade versions
+	if err = ChooseVersions(); err != nil {
+		log.Printf("failed to configure versions: %v", err)
+		return nil
+	}
+
+	switch {
+	case !viper.GetBool(config.Cluster.EnoughVersionsForOldestOrMiddleTest):
+		log.Printf("There were not enough available cluster image sets to choose and oldest or middle cluster image set to test against. Skipping tests.")
+		return nil
+	case !viper.GetBool(config.Cluster.PreviousVersionFromDefaultFound):
+		log.Printf("No previous version from default found with the given arguments.")
+		return nil
+	case viper.GetBool(config.Upgrade.UpgradeVersionEqualToInstallVersion):
+		log.Printf("Install version and upgrade version are the same. Skipping tests.")
+		return nil
+	case viper.GetString(config.Upgrade.ReleaseName) == util.NoVersionFound:
+		log.Printf("No valid upgrade versions were found. Skipping tests.")
+		return nil
+	case viper.GetString(config.Upgrade.Image) != "":
+		log.Printf("image-based managed upgrades are unsupported: %s", viper.GetString(config.Upgrade.Image))
+		return nil
 	}
 
 	// Update the metadata object to use the report directory.
